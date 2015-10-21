@@ -77,10 +77,24 @@ module.exports = function (grunt) {
             options: options
         };
 
-        this.files.forEach(_buildSource.bind(this, data, done));
+        var counter = function(files){
+            var count = files.length;
+            return {
+                done: function(){
+                    grunt.verbose.writeln("systemjs-builder-task - reducing count of remaining files...");
+                    count -= 1;
+                    if(count==0){
+                        grunt.verbose.writeln("systemjs-builder-task - all files built successfully");
+                        done();
+                    }
+                }
+            }
+        }(this.files);
+
+        this.files.forEach(_buildSource.bind(this, data, counter));
     }
 
-    function _buildSource(data, done, file) {
+    function _buildSource(data, counter, file) {
 
         if (file.src.length > 1) { //todo: support multiple src files using "&" - https://github.com/systemjs/builder#example---common-bundles
             grunt.fail.fatal("systemjs-builder-task - cant have more than one source file for the build process");
@@ -95,7 +109,7 @@ module.exports = function (grunt) {
         builder[data.buildMethod].call(builder, src, file.dest, options.build)
             .then(function () {
                 grunt.verbose.writeln("systemjs-builder-task - finished building source: " + src);
-                done();
+                counter.done();
             })
             .catch(function (err) {
                 grunt.fail.fatal(err);
